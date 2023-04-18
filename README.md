@@ -51,13 +51,24 @@ Manual Review
 
 Add payable to these external/public functions
 
+
+
 ## Discussion
 
 **jparklev**
 
 Confirmed: We've forgotten to add payable to the functions mentioned
 
+**jparklev**
 
+Fixed here for sense-v1: https://github.com/sense-finance/sense-v1/pull/345
+And here for the auto-roller: https://github.com/sense-finance/auto-roller/pull/33
+
+We took the suggested fix and added payable to the mentioned functions
+
+**IAm0x52**
+
+Fixes look good. Payable has been added to Periphery#removeLiquidity, combine, swapPT, swapYT and issue. Also adds payable to RollerPeriphery#redeem
 
 # Issue M-2: Multiple functions may leave excess funds in the contract that should be returned 
 
@@ -112,6 +123,8 @@ Manual Review
 
 Return excess tokens at the end of the function
 
+
+
 ## Discussion
 
 **jparklev**
@@ -120,7 +133,16 @@ We have this feature, for example, on `_swapSenseToken`, but not on the cases me
 
 Our fix will be: Transfer non-used tokens back to the user.
 
+**jparklev**
 
+Fixed here for sense-v1: https://github.com/sense-finance/sense-v1/pull/346
+And here for the auto-roller: https://github.com/sense-finance/auto-roller/pull/32
+
+We returned excess `sellTokens` funds in the from and to target functions
+
+**IAm0x52**
+
+Fixes look good. Excess sell tokens are now returned inside _toTarget and _fromTarget for both periphery and rollerPeriphery
 
 # Issue M-3: Periphery#_swapPTsForTarget won't work correctly if PT is mature but redeem is restricted 
 
@@ -183,13 +205,23 @@ Use the same structure as _removeLiquidity:
                 tBal += divider.redeem(adapter, maturity, _ptBal);
             }
 
+
+
 ## Discussion
 
 **jparklev**
 
 Accepted: This is valid and is indeed something we should fix
 
+**jparklev**
 
+Fixed here: https://github.com/sense-finance/sense-v1/pull/352
+
+We removed the `redeem` code path if redeem is disabled
+
+**IAm0x52**
+
+Fix looks good. Periphery will swap instead of redeeming if redeem is restricted
 
 # Issue M-4: fillQuote uses transfer instead of call which can break with future updates to gas costs 
 
@@ -222,13 +254,58 @@ Manual Review
 
 Use call instead of transfer. Reentrancy isn't a concern since the contract should only ever contain the callers funds. 
 
+
+
 ## Discussion
 
 **jparklev**
 
 Accepted: we should use .call instead of transfer when transferring ETH, specifically if the receiver is a contract that is integrating Sense.
 
+**jparklev**
 
+Fixed here: https://github.com/sense-finance/sense-v1/pull/348
+
+We ended up removing the protocol fees entirely, which obviated the need for the suggested fix here
+
+**IAm0x52**
+
+Fix looks good, transfer has ben changed to call but the occurrence is rollerPeriphery appears to have been missed:
+
+https://github.com/sherlock-audit/2023-03-sense/blob/52049213bdff31138c43a28f061fea493b3d7e14/auto-roller/src/RollerPeriphery.sol#L111
+
+**IAm0x52**
+
+Additional missed transfers:
+
+https://github.com/sense-finance/sense-v1/pull/346/files#r1167351042
+https://github.com/sense-finance/auto-roller/pull/32#discussion_r1167351433
+
+**fedealconada**
+
+> Fix looks good, transfer has ben changed to call but the occurrence is rollerPeriphery appears to have been missed:
+> 
+> https://github.com/sherlock-audit/2023-03-sense/blob/52049213bdff31138c43a28f061fea493b3d7e14/auto-roller/src/RollerPeriphery.sol#L111
+
+fixed [here](https://github.com/sense-finance/auto-roller/pull/32/commits/ea3625c8d860addc0e21eb96909822c384acd4ab)
+
+**fedealconada**
+
+> Additional missed transfers:
+> 
+> https://github.com/sense-finance/sense-v1/pull/346/files#r1167351042 [sense-finance/auto-roller#32 (comment)]
+
+fixed [here](https://github.com/sense-finance/sense-v1/pull/346/commits/2938b97020627344d00b6260e6bff1a1af607b74)
+
+> (https://github.com/sense-finance/auto-roller/pull/32#discussion_r1167351433)
+
+fixed [here](https://github.com/sense-finance/auto-roller/pull/32/commits/ea3625c8d860addc0e21eb96909822c384acd4ab)
+
+
+
+**IAm0x52**
+
+Fixes look good. All three occurrences have been address. 2 occurrences in RollerPeriphery addressed in [PR#32](https://github.com/sense-finance/auto-roller/pull/32/commits/ea3625c8d860addc0e21eb96909822c384acd4ab) and the other in Periphery addressed in [PR#346](https://github.com/sense-finance/sense-v1/pull/346/commits/2938b97020627344d00b6260e6bff1a1af607b74)
 
 # Issue M-5: sponsorSeries() method fails when user want to swap for stake token using 
 
@@ -260,6 +337,8 @@ Manual Review
 
 ## Recommendation
 Consider implementation of functionality to transferFrom `sellToken` from msg.sender with actual amount that is require to get exact amountOut greater or equal to `stakeSize`
+
+
 
 ## Discussion
 
@@ -293,5 +372,13 @@ if (address(quote.sellToken) != ETH) _transferFrom(permit, quote.sellToken, quot
 // quote.amount does not exist so we may need to add this param to the struct
 ```
 
+**jparklev**
 
+Fixed here: https://github.com/sense-finance/sense-v1/pull/347
+
+We used the fix mentioned above
+
+**IAm0x52**
+
+Fix looks good. _transferFrom now correctly pulls the sellToken instead of stake
 
